@@ -1,32 +1,33 @@
 import { describe, it, expect, vi } from 'vitest'
-import { getToken, revokeToken } from './auth'
+import { getToken } from './auth'
+
+const REDIRECT = 'https://test.chromiumapp.org/'
+const TOKEN_REDIRECT = `${REDIRECT}#access_token=fake-token&token_type=Bearer&expires_in=3600`
 
 describe('getToken', () => {
-  it('resolves with token when chrome.identity succeeds', async () => {
-    vi.mocked(chrome.identity.getAuthToken).mockImplementation(
-      (_opts, cb) => { cb?.('fake-token'); return Promise.resolve('fake-token') }
+  it('resolves with token parsed from redirect URL', async () => {
+    vi.mocked(chrome.identity.launchWebAuthFlow).mockImplementation(
+      (_opts, cb) => { cb?.(TOKEN_REDIRECT) }
     )
     const token = await getToken()
     expect(token).toBe('fake-token')
   })
 
-  it('resolves with null when chrome.identity returns no token', async () => {
-    vi.mocked(chrome.identity.getAuthToken).mockImplementation(
-      (_opts, cb) => { cb?.(undefined); return Promise.resolve(undefined) }
+  it('resolves with null when no redirect URL returned', async () => {
+    vi.mocked(chrome.identity.launchWebAuthFlow).mockImplementation(
+      (_opts, cb) => { cb?.(undefined) }
     )
     const token = await getToken()
     expect(token).toBeNull()
   })
-})
 
-describe('revokeToken', () => {
-  it('calls removeCachedAuthToken', async () => {
-    vi.mocked(chrome.identity.removeCachedAuthToken).mockImplementation(
-      (_opts, cb) => { cb?.(); return Promise.resolve() }
+  it('passes interactive:false for non-interactive requests', async () => {
+    vi.mocked(chrome.identity.launchWebAuthFlow).mockImplementation(
+      (_opts, cb) => { cb?.(undefined) }
     )
-    await revokeToken('fake-token')
-    expect(chrome.identity.removeCachedAuthToken).toHaveBeenCalledWith(
-      { token: 'fake-token' },
+    await getToken(false)
+    expect(chrome.identity.launchWebAuthFlow).toHaveBeenCalledWith(
+      expect.objectContaining({ interactive: false }),
       expect.any(Function)
     )
   })

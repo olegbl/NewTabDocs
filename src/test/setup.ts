@@ -25,6 +25,12 @@ const chromeMock = {
   identity: {
     getAuthToken: vi.fn(),
     removeCachedAuthToken: vi.fn(),
+    launchWebAuthFlow: vi.fn(),
+    getRedirectURL: vi.fn(() => 'https://test.chromiumapp.org/'),
+  },
+  runtime: {
+    getManifest: vi.fn(() => ({ oauth2: { client_id: 'test-client-id' } })),
+    lastError: undefined as chrome.runtime.LastError | undefined,
   },
 }
 

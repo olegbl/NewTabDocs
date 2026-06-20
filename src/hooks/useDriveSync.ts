@@ -37,13 +37,7 @@ export function useDriveSync(opts: UseDriveSyncOptions) {
   const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const sync = useCallback(async () => {
-    let token: string | null
-    try {
-      token = await getToken()
-    } catch {
-      opts.setSyncStatus('error')
-      return
-    }
+    const token = await getToken()
     if (!token) { opts.setSyncStatus('disconnected'); return }
 
     opts.setSyncStatus('syncing')
@@ -107,15 +101,9 @@ export function useDriveSync(opts: UseDriveSyncOptions) {
   }, [sync])
 
   const connect = useCallback(async () => {
-    let token: string | null
-    try {
-      token = await getToken()
-    } catch {
-      opts.setSyncStatus('error')
-      return
-    }
+    const token = await getToken()
     if (!token) {
-      opts.setSyncStatus('disconnected')
+      opts.setSyncStatus('error')
       return
     }
     opts.setDriveConnected(true)
