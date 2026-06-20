@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import type { Tab, SyncMeta, SyncStatus, ConflictState } from './types'
 import { loadState, saveState } from './storage'
 import { generateId } from './utils'
+import { getToken } from './drive/auth'
 import { useDriveSync } from './hooks/useDriveSync'
 import Sidebar from './components/Sidebar'
 import Editor from './components/Editor'
@@ -21,7 +22,7 @@ export default function App() {
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
-    loadState().then(state => {
+    loadState().then(async state => {
       let initialTabs = state.tabs
       let initialActiveId = state.activeTabId
 
@@ -35,8 +36,20 @@ export default function App() {
       setActiveTabId(initialActiveId ?? initialTabs[0]?.id ?? null)
       setSyncMeta(state.syncMeta)
       lastLocalChangeAtRef.current = Math.max(...initialTabs.map(t => t.updatedAt), 0)
+
+      // Auto-reconnect if Chrome has a cached Drive token from a previous session
+      const token = await getToken(false).catch(() => null)
+      if (token) setDriveConnected(true)
     })
   }, [])
+
+  // Trigger a sync once Drive connects (startup pull or first connect)
+  const startupSyncDone = useRef(false)
+  useEffect(() => {
+    if (!driveConnected || startupSyncDone.current) return
+    startupSyncDone.current = true
+    sync()
+  }, [driveConnected, sync])
 
   // Flush to storage on page close
   useEffect(() => {

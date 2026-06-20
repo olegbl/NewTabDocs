@@ -1,6 +1,12 @@
-export async function getToken(): Promise<string | null> {
-  return new Promise(resolve => {
-    chrome.identity.getAuthToken({ interactive: true }, token => {
+export async function getToken(interactive = true): Promise<string | null> {
+  return new Promise((resolve, reject) => {
+    chrome.identity.getAuthToken({ interactive }, token => {
+      const err = chrome.runtime?.lastError?.message
+      if (err) {
+        // Non-interactive failures are expected when no token is cached
+        interactive ? reject(new Error(err)) : resolve(null)
+        return
+      }
       resolve(token ?? null)
     })
   })
