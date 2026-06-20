@@ -11,7 +11,8 @@ const SAVE_DEBOUNCE_MS = 500
 export default function App() {
   const [tabs, setTabs] = useState<Tab[]>([])
   const [activeTabId, setActiveTabId] = useState<string | null>(null)
-  const [syncStatus] = useState<SyncStatus>('disconnected')
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>('disconnected')
+  const [driveConnected, setDriveConnected] = useState(false)
   const [conflict, setConflict] = useState<ConflictState | null>(null)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -73,6 +74,15 @@ export default function App() {
     saveState({ activeTabId: id })
   }, [])
 
+  const handleConnectDrive = useCallback(() => {
+    setDriveConnected(true)
+  }, [])
+
+  const handleDisconnectDrive = useCallback(() => {
+    setDriveConnected(false)
+    setSyncStatus('disconnected')
+  }, [])
+
   const handleConflictResolve = useCallback((winner: 'local' | 'remote') => {
     if (!conflict) return
     const winningTabs = winner === 'local' ? conflict.local.tabs : conflict.remote.tabs
@@ -87,9 +97,12 @@ export default function App() {
         tabs={tabs}
         activeTabId={activeTabId}
         syncStatus={syncStatus}
+        driveConnected={driveConnected}
         onNewTab={handleNewTab}
         onSelectTab={handleTabSelect}
         onDeleteTab={handleDeleteTab}
+        onConnectDrive={handleConnectDrive}
+        onDisconnectDrive={handleDisconnectDrive}
       />
       <Editor
         key={activeTabId ?? 'none'}
