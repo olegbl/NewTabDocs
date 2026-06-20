@@ -35,74 +35,71 @@ interface UseDriveSyncOptions {
 
 export function useDriveSync(opts: UseDriveSyncOptions) {
   const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const optsRef = useRef(opts)
-  optsRef.current = opts
 
   const sync = useCallback(async () => {
-    const o = optsRef.current
     let token: string | null
     try {
       token = await getToken()
     } catch {
-      o.setSyncStatus('error')
+      opts.setSyncStatus('error')
       return
     }
-    if (!token) { o.setSyncStatus('disconnected'); return }
+    if (!token) { opts.setSyncStatus('disconnected'); return }
 
-    o.setSyncStatus('syncing')
+    opts.setSyncStatus('syncing')
     try {
       const meta = await getFileMeta(token)
-      const fileId = meta?.id ?? o.driveFileId
+      const fileId = meta?.id ?? opts.driveFileId
 
       if (!meta) {
-        const result = await uploadFile(token, null, { tabs: o.tabs, savedAt: Date.now() })
+        const result = await uploadFile(token, null, { tabs: opts.tabs, savedAt: Date.now() })
         const newMeta: SyncMeta = { lastSyncedAt: Date.now(), lastSyncedDriveVersion: result.etag }
-        o.setSyncMeta(newMeta)
-        o.setDriveFileId(result.id)
+        opts.setSyncMeta(newMeta)
+        opts.setDriveFileId(result.id)
         await saveState({ syncMeta: newMeta })
-        o.setSyncStatus('synced')
+        opts.setSyncStatus('synced')
         return
       }
 
-      const action = detectConflict(o.syncMeta, meta.etag, o.lastLocalChangeAt)
+      const action = detectConflict(opts.syncMeta, meta.etag, opts.lastLocalChangeAt)
 
       if (action === 'no-change') {
-        o.setSyncStatus('synced')
+        opts.setSyncStatus('synced')
         return
       }
 
       if (action === 'pull') {
         const remote = await downloadFile(token, meta.id)
-        o.setTabs(remote.tabs)
+        opts.setTabs(remote.tabs)
         const newMeta: SyncMeta = { lastSyncedAt: Date.now(), lastSyncedDriveVersion: meta.etag }
-        o.setSyncMeta(newMeta)
+        opts.setSyncMeta(newMeta)
         await saveState({ tabs: remote.tabs, syncMeta: newMeta })
-        o.setSyncStatus('synced')
+        opts.setSyncStatus('synced')
         return
       }
 
       if (action === 'push') {
-        const result = await uploadFile(token, fileId ?? null, { tabs: o.tabs, savedAt: Date.now() })
+        const result = await uploadFile(token, fileId ?? null, { tabs: opts.tabs, savedAt: Date.now() })
         const newMeta: SyncMeta = { lastSyncedAt: Date.now(), lastSyncedDriveVersion: result.etag }
-        o.setSyncMeta(newMeta)
-        o.setDriveFileId(result.id)
+        opts.setSyncMeta(newMeta)
+        opts.setDriveFileId(result.id)
         await saveState({ syncMeta: newMeta })
-        o.setSyncStatus('synced')
+        opts.setSyncStatus('synced')
         return
       }
 
       // conflict
       const remote = await downloadFile(token, meta.id)
-      o.setConflict({
-        local: { tabs: o.tabs, savedAt: o.lastLocalChangeAt },
+      opts.setConflict({
+        local: { tabs: opts.tabs, savedAt: opts.lastLocalChangeAt },
         remote,
         remoteEtag: meta.etag,
       })
-      o.setSyncStatus('idle')
+      opts.setSyncStatus('idle')
     } catch {
-      o.setSyncStatus('error')
+      opts.setSyncStatus('error')
     }
-  }, []) // stable ref — reads latest opts via optsRef
+  }, [opts])
 
   const scheduleSyncAfterEdit = useCallback(() => {
     if (syncTimerRef.current) clearTimeout(syncTimerRef.current)
@@ -110,21 +107,20 @@ export function useDriveSync(opts: UseDriveSyncOptions) {
   }, [sync])
 
   const connect = useCallback(async () => {
-    const o = optsRef.current
     let token: string | null
     try {
       token = await getToken()
     } catch {
-      o.setSyncStatus('error')
+      opts.setSyncStatus('error')
       return
     }
     if (!token) {
-      o.setSyncStatus('disconnected')
+      opts.setSyncStatus('disconnected')
       return
     }
-    o.setDriveConnected(true)
+    opts.setDriveConnected(true)
     await sync()
-  }, [sync])
+  }, [sync, opts])
 
   return { scheduleSyncAfterEdit, sync, connect }
 }

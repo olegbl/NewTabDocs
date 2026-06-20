@@ -43,14 +43,6 @@ export default function App() {
     })
   }, [])
 
-  // Trigger a sync once Drive connects (startup pull or first connect)
-  const startupSyncDone = useRef(false)
-  useEffect(() => {
-    if (!driveConnected || startupSyncDone.current) return
-    startupSyncDone.current = true
-    sync()
-  }, [driveConnected, sync])
-
   // Flush to storage on page close
   useEffect(() => {
     const flush = () => {
