@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "New Tab Docs",
+  "version": "1.0.0",
+  "description": "Markdown notes on every new tab, synced to Google Drive.",
+  "chrome_url_overrides": { "newtab": "newtab.html" },
+  "permissions": ["storage", "identity"],
+  "oauth2": {
+    "client_id": "YOUR_GOOGLE_CLIENT_ID",
+    "scopes": ["https://www.googleapis.com/auth/drive.file"]
+  }
+}
