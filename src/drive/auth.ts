@@ -1,4 +1,10 @@
 const SCOPE = 'https://www.googleapis.com/auth/drive.file'
+const TOKEN_KEY = 'driveAccessToken'
+const TOKEN_EXPIRY_KEY = 'driveTokenExpiry'
+const TOKEN_TTL_MS = 55 * 60 * 1000 // 55 min — tokens last 1 hour
+
+// In-memory cache: prevents double popup within the same page load
+let memoryToken: string | null = null
 
 function getClientId(): string {
   const manifest = chrome.runtime.getManifest() as { oauth2?: { client_id: string } }
@@ -25,8 +31,21 @@ function parseToken(redirectUrl: string): string | null {
   }
 }
 
+async function readStoredToken(): Promise<string | null> {
+  const result = await chrome.storage.local.get([TOKEN_KEY, TOKEN_EXPIRY_KEY])
+  const token = result[TOKEN_KEY] as string | undefined
+  const expiry = result[TOKEN_EXPIRY_KEY] as number | undefined
+  if (token && expiry && Date.now() < expiry) return token
+  return null
+}
+
 export async function getToken(interactive = true): Promise<string | null> {
-  return new Promise(resolve => {
+  if (memoryToken) return memoryToken
+
+  const stored = await readStoredToken()
+  if (stored) { memoryToken = stored; return stored }
+
+  const token = await new Promise<string | null>(resolve => {
     chrome.identity.launchWebAuthFlow(
       { url: buildAuthUrl(!interactive), interactive },
       redirectUrl => {
@@ -40,8 +59,23 @@ export async function getToken(interactive = true): Promise<string | null> {
       }
     )
   })
+
+  if (token) {
+    memoryToken = token
+    await chrome.storage.local.set({
+      [TOKEN_KEY]: token,
+      [TOKEN_EXPIRY_KEY]: Date.now() + TOKEN_TTL_MS,
+    })
+  }
+  return token
+}
+
+export async function clearCachedToken(): Promise<void> {
+  memoryToken = null
+  await chrome.storage.local.remove([TOKEN_KEY, TOKEN_EXPIRY_KEY])
 }
 
 export async function revokeToken(token: string): Promise<void> {
+  await clearCachedToken()
   await fetch(`https://oauth2.googleapis.com/revoke?token=${token}`, { method: 'POST' })
 }

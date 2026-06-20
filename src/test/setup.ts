@@ -20,6 +20,11 @@ const chromeMock = {
         Object.assign(store, items)
         return Promise.resolve()
       }),
+      remove: vi.fn((keys: string | string[]) => {
+        const ks = Array.isArray(keys) ? keys : [keys]
+        ks.forEach(k => { delete store[k] })
+        return Promise.resolve()
+      }),
     },
   },
   identity: {

@@ -3,8 +3,16 @@ import type { DriveBackup, DriveFile } from '../types'
 const FILE_NAME = 'newtabdocs-backup.json'
 const BASE = 'https://www.googleapis.com'
 
-function headers(token: string): Record<string, string> {
-  return { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+function authHeader(token: string): Record<string, string> {
+  return { Authorization: `Bearer ${token}` }
+}
+
+async function assertOk(res: Response): Promise<void> {
+  if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    console.error(`[Drive API] ${res.status} ${res.url}\n${body}`)
+    throw new Error(`Drive API ${res.status}`)
+  }
 }
 
 export async function getFileMeta(token: string): Promise<DriveFile | null> {
@@ -12,8 +20,9 @@ export async function getFileMeta(token: string): Promise<DriveFile | null> {
   const fields = 'files(id,etag,modifiedTime)'
   const res = await fetch(
     `${BASE}/drive/v3/files?q=${q}&fields=${fields}&spaces=drive`,
-    { headers: headers(token) }
+    { headers: { ...authHeader(token), 'Content-Type': 'application/json' } }
   )
+  await assertOk(res)
   const data = await res.json()
   return data.files?.[0] ?? null
 }
@@ -21,8 +30,9 @@ export async function getFileMeta(token: string): Promise<DriveFile | null> {
 export async function downloadFile(token: string, fileId: string): Promise<DriveBackup> {
   const res = await fetch(
     `${BASE}/drive/v3/files/${fileId}?alt=media`,
-    { headers: headers(token) }
+    { headers: authHeader(token) }
   )
+  await assertOk(res)
   return res.json()
 }
 
@@ -39,12 +49,12 @@ export async function uploadFile(
   const url = fileId
     ? `${BASE}/upload/drive/v3/files/${fileId}?uploadType=multipart&fields=id,etag`
     : `${BASE}/upload/drive/v3/files?uploadType=multipart&fields=id,etag`
-  const method = fileId ? 'PATCH' : 'POST'
 
   const res = await fetch(url, {
-    method,
-    headers: { Authorization: `Bearer ${token}` },
+    method: fileId ? 'PATCH' : 'POST',
+    headers: authHeader(token),
     body,
   })
+  await assertOk(res)
   return res.json()
 }

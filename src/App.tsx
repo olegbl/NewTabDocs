@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import type { Tab, SyncMeta, SyncStatus, ConflictState } from './types'
 import { loadState, saveState } from './storage'
 import { generateId } from './utils'
-import { getToken } from './drive/auth'
+import { getToken, clearCachedToken } from './drive/auth'
 import { useDriveSync } from './hooks/useDriveSync'
 import Sidebar from './components/Sidebar'
 import Editor from './components/Editor'
@@ -118,6 +118,7 @@ export default function App() {
   const handleDisconnectDrive = useCallback(() => {
     setDriveConnected(false)
     setSyncStatus('disconnected')
+    clearCachedToken()
   }, [])
 
   const handleConflictResolve = useCallback(async (winner: 'local' | 'remote') => {
