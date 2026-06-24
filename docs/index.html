@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New Tab Docs</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0f0f0f;
+      color: #ccc;
+      line-height: 1.6;
+    }
+
+    header {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 72px 24px 48px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    header img.icon {
+      width: 64px;
+      height: 64px;
+      border-radius: 14px;
+    }
+
+    header h1 {
+      font-size: 2em;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    header p {
+      font-size: 1.05em;
+      color: #888;
+      margin-top: 4px;
+    }
+
+    .cta {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 0 24px 48px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .cta a {
+      display: inline-block;
+      background: #1a73e8;
+      color: #fff;
+      text-decoration: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-size: 0.95em;
+      font-weight: 500;
+    }
+
+    .cta a.secondary {
+      background: #1e1e1e;
+      color: #aaa;
+      border: 1px solid #333;
+    }
+
+    .screenshot {
+      max-width: 760px;
+      margin: 0 auto 56px;
+      padding: 0 24px;
+    }
+
+    .screenshot img {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid #2a2a2a;
+    }
+
+    .features {
+      max-width: 760px;
+      margin: 0 auto 72px;
+      padding: 0 24px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+    }
+
+    .feature {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      padding: 20px;
+    }
+
+    .feature h3 {
+      color: #fff;
+      font-size: 0.95em;
+      margin-bottom: 6px;
+    }
+
+    .feature p {
+      font-size: 0.875em;
+      color: #666;
+    }
+
+    footer {
+      border-top: 1px solid #1e1e1e;
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 24px;
+      font-size: 0.85em;
+      color: #555;
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    footer a { color: #555; text-decoration: none; }
+    footer a:hover { color: #888; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <img class="icon" src="icon128.png" alt="New Tab Docs icon">
+    <div>
+      <h1>New Tab Docs</h1>
+      <p>Markdown notes on every new tab, synced to Google Drive.</p>
+    </div>
+  </header>
+
+  <div class="cta">
+    <a href="https://chrome.google.com/webstore/detail/mopgmbfgiiphfankboijlehiekcpogmm">Install from Chrome Web Store</a>
+    <a class="secondary" href="https://github.com/olegbl/NewTabDocs">View on GitHub</a>
+  </div>
+
+  <div class="screenshot">
+    <img src="screenshot.png" alt="New Tab Docs screenshot">
+  </div>
+
+  <div class="features">
+    <div class="feature">
+      <h3>Markdown editor</h3>
+      <p>Live syntax highlighting for headings, bold, italic, code, and links.</p>
+    </div>
+    <div class="feature">
+      <h3>Multiple docs</h3>
+      <p>Keep as many notes as you like, sorted by last edited.</p>
+    </div>
+    <div class="feature">
+      <h3>Instant local save</h3>
+      <p>Notes are saved to local storage as you type. No sync required.</p>
+    </div>
+    <div class="feature">
+      <h3>Google Drive sync</h3>
+      <p>Optionally sync your notes to your own Google Drive with conflict resolution.</p>
+    </div>
+    <div class="feature">
+      <h3>Clickable links</h3>
+      <p>Ctrl+click any URL or markdown link to open it in a new tab.</p>
+    </div>
+    <div class="feature">
+      <h3>Stays connected</h3>
+      <p>Drive connection persists across browser restarts and auto-refreshes.</p>
+    </div>
+  </div>
+
+  <footer>
+    <span>&copy; 2026 Oleg Lokhvitsky</span>
+    <a href="https://github.com/olegbl/NewTabDocs/blob/main/docs/privacy.md">Privacy Policy</a>
+    <a href="https://github.com/olegbl/NewTabDocs/blob/main/LICENSE">MIT License</a>
+    <a href="https://github.com/olegbl/NewTabDocs">GitHub</a>
+  </footer>
+
+</body>
+</html>
