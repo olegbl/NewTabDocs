@@ -1,18 +1,18 @@
-import { useRef, useCallback } from 'react'
+import { useRef, useCallback, type MutableRefObject } from 'react'
 import type { Tab, SyncMeta, SyncStatus, ConflictState } from '../types'
-import { getToken } from '../drive/auth'
-import { getFileMeta, downloadFile, uploadFile } from '../drive/api'
+import { getToken, clearCachedToken } from '../drive/auth'
+import { getFileMeta, downloadFile, uploadFile, DriveAuthError } from '../drive/api'
 import { saveState } from '../storage'
 
 export type SyncAction = 'no-change' | 'pull' | 'push' | 'conflict'
 
 export function detectConflict(
   syncMeta: SyncMeta,
-  remoteEtag: string,
+  remoteVersion: string,
   lastLocalChangeAt: number
 ): SyncAction {
   if (syncMeta.lastSyncedAt === null) return 'push'
-  const driveChanged = remoteEtag !== syncMeta.lastSyncedDriveVersion
+  const driveChanged = remoteVersion !== syncMeta.lastSyncedDriveVersion
   const localChanged = lastLocalChangeAt > syncMeta.lastSyncedAt
   if (!driveChanged && !localChanged) return 'no-change'
   if (driveChanged && !localChanged) return 'pull'
@@ -23,7 +23,7 @@ export function detectConflict(
 interface UseDriveSyncOptions {
   tabs: Tab[]
   syncMeta: SyncMeta
-  lastLocalChangeAt: number
+  lastLocalChangeAtRef: MutableRefObject<number>
   driveFileId: string | null
   setTabs: (tabs: Tab[]) => void
   setSyncMeta: (meta: SyncMeta) => void
@@ -35,65 +35,76 @@ interface UseDriveSyncOptions {
 
 export function useDriveSync(opts: UseDriveSyncOptions) {
   const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const optsRef = useRef(opts)
+  optsRef.current = opts  // always latest, even when sync fires from a stale timer
 
-  const sync = useCallback(async () => {
+  const sync = useCallback(async (retried = false) => {
+    const o = optsRef.current
     const token = await getToken()
-    if (!token) { opts.setSyncStatus('disconnected'); return }
+    if (!token) { o.setSyncStatus('disconnected'); return }
 
-    opts.setSyncStatus('syncing')
+    o.setSyncStatus('syncing')
     try {
       const meta = await getFileMeta(token)
-      const fileId = meta?.id ?? opts.driveFileId
+      const fileId = meta?.id ?? o.driveFileId
 
       if (!meta) {
-        const result = await uploadFile(token, null, { tabs: opts.tabs, savedAt: Date.now() })
-        const newMeta: SyncMeta = { lastSyncedAt: Date.now(), lastSyncedDriveVersion: result.etag }
-        opts.setSyncMeta(newMeta)
-        opts.setDriveFileId(result.id)
+        const result = await uploadFile(token, null, { tabs: o.tabs, savedAt: Date.now() })
+        const newMeta: SyncMeta = { lastSyncedAt: Date.now(), lastSyncedDriveVersion: result.modifiedTime }
+        o.setSyncMeta(newMeta)
+        o.setDriveFileId(result.id)
         await saveState({ syncMeta: newMeta })
-        opts.setSyncStatus('synced')
+        o.setSyncStatus('synced')
         return
       }
 
-      const action = detectConflict(opts.syncMeta, meta.etag, opts.lastLocalChangeAt)
+      const action = detectConflict(o.syncMeta, meta.modifiedTime, o.lastLocalChangeAtRef.current)
 
       if (action === 'no-change') {
-        opts.setSyncStatus('synced')
+        o.setSyncStatus('synced')
         return
       }
 
       if (action === 'pull') {
         const remote = await downloadFile(token, meta.id)
-        opts.setTabs(remote.tabs)
-        const newMeta: SyncMeta = { lastSyncedAt: Date.now(), lastSyncedDriveVersion: meta.etag }
-        opts.setSyncMeta(newMeta)
+        o.setTabs(remote.tabs)
+        const newMeta: SyncMeta = { lastSyncedAt: Date.now(), lastSyncedDriveVersion: meta.modifiedTime }
+        o.setSyncMeta(newMeta)
         await saveState({ tabs: remote.tabs, syncMeta: newMeta })
-        opts.setSyncStatus('synced')
+        o.setSyncStatus('synced')
         return
       }
 
       if (action === 'push') {
-        const result = await uploadFile(token, fileId ?? null, { tabs: opts.tabs, savedAt: Date.now() })
-        const newMeta: SyncMeta = { lastSyncedAt: Date.now(), lastSyncedDriveVersion: result.etag }
-        opts.setSyncMeta(newMeta)
-        opts.setDriveFileId(result.id)
+        const result = await uploadFile(token, fileId ?? null, { tabs: o.tabs, savedAt: Date.now() })
+        const newMeta: SyncMeta = { lastSyncedAt: Date.now(), lastSyncedDriveVersion: result.modifiedTime }
+        o.setSyncMeta(newMeta)
+        o.setDriveFileId(result.id)
         await saveState({ syncMeta: newMeta })
-        opts.setSyncStatus('synced')
+        o.setSyncStatus('synced')
         return
       }
 
       // conflict
       const remote = await downloadFile(token, meta.id)
-      opts.setConflict({
-        local: { tabs: opts.tabs, savedAt: opts.lastLocalChangeAt },
+      o.setConflict({
+        local: { tabs: o.tabs, savedAt: o.lastLocalChangeAtRef.current },
         remote,
-        remoteEtag: meta.etag,
+        remoteVersion: meta.modifiedTime,
       })
-      opts.setSyncStatus('idle')
-    } catch {
-      opts.setSyncStatus('error')
+      o.setSyncStatus('idle')
+    } catch (err) {
+      if (!retried && err instanceof DriveAuthError) {
+        // Token expired — clear it, try silent refresh then interactive, retry once
+        await clearCachedToken()
+        const silent = await getToken(false)
+        if (!silent) await getToken(true)
+        await sync(true)
+        return
+      }
+      optsRef.current.setSyncStatus('error')
     }
-  }, [opts])
+  }, [])
 
   const scheduleSyncAfterEdit = useCallback(() => {
     if (syncTimerRef.current) clearTimeout(syncTimerRef.current)
@@ -103,12 +114,43 @@ export function useDriveSync(opts: UseDriveSyncOptions) {
   const connect = useCallback(async () => {
     const token = await getToken()
     if (!token) {
-      opts.setSyncStatus('error')
+      optsRef.current.setSyncStatus('error')
       return
     }
-    opts.setDriveConnected(true)
+    optsRef.current.setDriveConnected(true)
     await sync()
-  }, [sync, opts])
+  }, [sync])
 
-  return { scheduleSyncAfterEdit, sync, connect }
+  // Called after the user picks a winner in the conflict dialog.
+  // Bypasses detectConflict — we already know what to do.
+  const resolveConflict = useCallback(async (
+    winner: 'local' | 'remote',
+    winningTabs: Tab[],
+    remoteVersion: string,
+  ) => {
+    const o = optsRef.current
+    const token = await getToken()
+    if (!token) { o.setSyncStatus('error'); return }
+
+    o.setSyncStatus('syncing')
+    try {
+      if (winner === 'local') {
+        const result = await uploadFile(token, o.driveFileId, { tabs: winningTabs, savedAt: Date.now() })
+        const newMeta: SyncMeta = { lastSyncedAt: Date.now(), lastSyncedDriveVersion: result.modifiedTime }
+        o.setSyncMeta(newMeta)
+        o.setDriveFileId(result.id)
+        await saveState({ syncMeta: newMeta })
+      } else {
+        // Remote tabs already applied by caller; just record the synced version.
+        const newMeta: SyncMeta = { lastSyncedAt: Date.now(), lastSyncedDriveVersion: remoteVersion }
+        o.setSyncMeta(newMeta)
+        await saveState({ syncMeta: newMeta })
+      }
+      o.setSyncStatus('synced')
+    } catch {
+      o.setSyncStatus('error')
+    }
+  }, [])
+
+  return { scheduleSyncAfterEdit, sync, connect, resolveConflict }
 }

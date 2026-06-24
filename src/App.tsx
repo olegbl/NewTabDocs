@@ -27,7 +27,7 @@ export default function App() {
       let initialActiveId = state.activeTabId
 
       if (initialTabs.length === 0) {
-        const newTab: Tab = { id: generateId(), content: '# New note\n', updatedAt: Date.now() }
+        const newTab: Tab = { id: generateId(), content: '# New doc\n', updatedAt: Date.now() }
         initialTabs = [newTab]
         initialActiveId = newTab.id
       }
@@ -37,9 +37,12 @@ export default function App() {
       setSyncMeta(state.syncMeta)
       lastLocalChangeAtRef.current = Math.max(...initialTabs.map(t => t.updatedAt), 0)
 
-      // Auto-reconnect if Chrome has a cached Drive token from a previous session
+      // Auto-reconnect if we have a cached Drive token from a previous session
       const token = await getToken(false).catch(() => null)
-      if (token) setDriveConnected(true)
+      if (token) {
+        setDriveConnected(true)
+        setSyncStatus('idle')
+      }
     })
   }, [])
 
@@ -57,10 +60,10 @@ export default function App() {
 
   const activeTab = tabs.find(t => t.id === activeTabId) ?? null
 
-  const { scheduleSyncAfterEdit, sync, connect } = useDriveSync({
+  const { scheduleSyncAfterEdit, sync, connect, resolveConflict } = useDriveSync({
     tabs,
     syncMeta,
-    lastLocalChangeAt: lastLocalChangeAtRef.current,
+    lastLocalChangeAtRef,
     driveFileId,
     setTabs,
     setSyncMeta,
@@ -78,13 +81,13 @@ export default function App() {
       const sorted = [...updated].sort((a, b) => b.updatedAt - a.updatedAt)
       if (saveTimer.current) clearTimeout(saveTimer.current)
       saveTimer.current = setTimeout(() => saveState({ tabs: sorted }), SAVE_DEBOUNCE_MS)
-      if (driveConnected) scheduleSyncAfterEdit()
       return sorted
     })
+    if (driveConnected) scheduleSyncAfterEdit()
   }, [activeTabId, driveConnected, scheduleSyncAfterEdit])
 
   const handleNewTab = useCallback(() => {
-    const tab: Tab = { id: generateId(), content: '# New note\n', updatedAt: Date.now() }
+    const tab: Tab = { id: generateId(), content: '# New doc\n', updatedAt: Date.now() }
     setTabs(prev => {
       const updated = [tab, ...prev]
       saveState({ tabs: updated, activeTabId: tab.id })
@@ -97,7 +100,7 @@ export default function App() {
     setTabs(prev => {
       const updated = prev.filter(t => t.id !== id)
       const withFallback = updated.length === 0
-        ? [{ id: generateId(), content: '# New note\n', updatedAt: Date.now() }]
+        ? [{ id: generateId(), content: '# New doc\n', updatedAt: Date.now() }]
         : updated
       const newActiveId = id === activeTabId ? (withFallback[0]?.id ?? null) : activeTabId
       saveState({ tabs: withFallback, activeTabId: newActiveId })
@@ -127,8 +130,8 @@ export default function App() {
     setTabs(winningTabs)
     setConflict(null)
     await saveState({ tabs: winningTabs })
-    await sync()
-  }, [conflict, sync])
+    await resolveConflict(winner, winningTabs, conflict.remoteVersion)
+  }, [conflict, resolveConflict])
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
@@ -136,6 +139,7 @@ export default function App() {
         tabs={tabs}
         activeTabId={activeTabId}
         syncStatus={syncStatus}
+        syncMeta={syncMeta}
         driveConnected={driveConnected}
         onNewTab={handleNewTab}
         onSelectTab={handleTabSelect}

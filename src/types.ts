@@ -13,7 +13,6 @@ export type SyncStatus = 'idle' | 'syncing' | 'synced' | 'error' | 'disconnected
 
 export interface DriveFile {
   id: string
-  etag: string
   modifiedTime: string
 }
 
@@ -25,5 +24,5 @@ export interface DriveBackup {
 export interface ConflictState {
   local: DriveBackup
   remote: DriveBackup
-  remoteEtag: string
+  remoteVersion: string
 }

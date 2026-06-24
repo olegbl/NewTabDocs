@@ -3,7 +3,8 @@ import { EditorView, keymap } from '@codemirror/view'
 import { EditorState } from '@codemirror/state'
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
 import { markdown } from '@codemirror/lang-markdown'
-import { syntaxHighlighting, HighlightStyle } from '@codemirror/language'
+import { GFM } from '@lezer/markdown'
+import { syntaxHighlighting, HighlightStyle, syntaxTree } from '@codemirror/language'
 import { tags } from '@lezer/highlight'
 
 const markdownHighlight = HighlightStyle.define([
@@ -40,6 +41,8 @@ interface Props {
 export default function Editor({ content, onChange }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
+  const onChangeRef = useRef(onChange)
+  onChangeRef.current = onChange  // always latest, even after re-renders
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -50,14 +53,71 @@ export default function Editor({ content, onChange }: Props) {
         extensions: [
           history(),
           keymap.of([...defaultKeymap, ...historyKeymap]),
-          markdown(),
+          markdown({ extensions: [GFM] }),
           syntaxHighlighting(markdownHighlight),
           theme,
           EditorView.lineWrapping,
           EditorView.updateListener.of(update => {
             if (update.docChanged) {
-              onChange(update.state.doc.toString())
+              onChangeRef.current(update.state.doc.toString())
             }
+          }),
+          EditorView.domEventHandlers({
+            click(event, view) {
+              if (!event.ctrlKey && !event.metaKey) return false
+              const pos = view.posAtCoords({ x: event.clientX, y: event.clientY })
+              if (pos === null) return false
+              let node = syntaxTree(view.state).resolveInner(pos, 1)
+              while (node) {
+                if (node.name === 'URL') {
+                  // [text](url) — URL child node
+                  const url = view.state.sliceDoc(node.from, node.to)
+                  window.open(url, '_blank')
+                  event.preventDefault()
+                  return true
+                }
+                if (node.name === 'Autolink') {
+                  // <https://...> — strip surrounding < >
+                  const url = view.state.sliceDoc(node.from + 1, node.to - 1)
+                  window.open(url, '_blank')
+                  event.preventDefault()
+                  return true
+                }
+                if (node.name === 'Link') {
+                  // Try URL child first ([text](url) form, clicking the text part)
+                  const urlChild = node.getChild('URL')
+                  if (urlChild) {
+                    const url = view.state.sliceDoc(urlChild.from, urlChild.to)
+                    window.open(url, '_blank')
+                    event.preventDefault()
+                    return true
+                  }
+                  // GFM bare URL — the Link node itself is the URL
+                  const text = view.state.sliceDoc(node.from, node.to)
+                  if (/^https?:\/\//.test(text)) {
+                    window.open(text, '_blank')
+                    event.preventDefault()
+                    return true
+                  }
+                }
+                if (!node.parent) break
+                node = node.parent
+              }
+
+              // Fallback: regex scan the line for plain URLs
+              const line = view.state.doc.lineAt(pos)
+              const offset = pos - line.from
+              const urlRe = /https?:\/\/[^\s)>\]"']+/g
+              let m
+              while ((m = urlRe.exec(line.text)) !== null) {
+                if (m.index <= offset && offset <= m.index + m[0].length) {
+                  window.open(m[0], '_blank')
+                  event.preventDefault()
+                  return true
+                }
+              }
+              return false
+            },
           }),
         ],
       }),

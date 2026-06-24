@@ -7,7 +7,7 @@ import type { ConflictState } from '../types'
 const conflict: ConflictState = {
   local: { tabs: [{ id: '1', content: '# Local', updatedAt: 1000 }], savedAt: 1000 },
   remote: { tabs: [{ id: '2', content: '# Remote', updatedAt: 2000 }, { id: '3', content: '# B', updatedAt: 900 }], savedAt: 2000 },
-  remoteEtag: '"etag-xyz"',
+  remoteVersion: '"etag-xyz"',
 }
 
 describe('ConflictDialog', () => {

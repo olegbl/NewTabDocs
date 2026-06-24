@@ -1,5 +1,4 @@
-import type { Tab, SyncStatus } from '../types'
-import SyncIndicator from './SyncIndicator'
+import type { Tab, SyncStatus, SyncMeta } from '../types'
 import TabList from './TabList'
 import DriveStatus from './DriveStatus'
 
@@ -7,6 +6,7 @@ interface Props {
   tabs: Tab[]
   activeTabId: string | null
   syncStatus: SyncStatus
+  syncMeta: SyncMeta
   driveConnected: boolean
   onNewTab: () => void
   onSelectTab: (id: string) => void
@@ -16,7 +16,7 @@ interface Props {
 }
 
 export default function Sidebar({
-  tabs, activeTabId, syncStatus, driveConnected,
+  tabs, activeTabId, syncStatus, syncMeta, driveConnected,
   onNewTab, onSelectTab, onDeleteTab, onConnectDrive, onDisconnectDrive,
 }: Props) {
   return (
@@ -35,15 +35,12 @@ export default function Sidebar({
         alignItems: 'center',
         justifyContent: 'space-between',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ fontSize: 11, color: '#555', letterSpacing: '.08em', textTransform: 'uppercase' }}>
-            Notes
-          </span>
-          <SyncIndicator status={syncStatus} />
-        </div>
+        <span style={{ fontSize: 11, color: '#555', letterSpacing: '.08em', textTransform: 'uppercase' }}>
+          Docs
+        </span>
         <button
           onClick={onNewTab}
-          title="New note"
+          title="New doc"
           style={{ background: 'none', border: 'none', color: '#666', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}
         >
           +
@@ -59,6 +56,8 @@ export default function Sidebar({
 
       <DriveStatus
         connected={driveConnected}
+        syncStatus={syncStatus}
+        syncMeta={syncMeta}
         onConnect={onConnectDrive}
         onDisconnect={onDisconnectDrive}
       />

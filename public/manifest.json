@@ -4,9 +4,10 @@
   "version": "1.0.0",
   "description": "Markdown notes on every new tab, synced to Google Drive.",
   "chrome_url_overrides": { "newtab": "newtab.html" },
+  "icons": { "16": "icon16.png", "48": "icon48.png", "128": "icon128.png" },
   "permissions": ["storage", "identity"],
   "oauth2": {
-    "client_id": "YOUR_GOOGLE_CLIENT_ID",
+    "client_id": "359735161153-d53kn6rp2160h4vr66416neof07nte03.apps.googleusercontent.com",
     "scopes": ["https://www.googleapis.com/auth/drive.file"]
   }
 }
