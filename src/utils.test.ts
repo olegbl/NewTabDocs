@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { deriveTitle, formatRelativeTime, generateId } from './utils'
+import { deriveTitle, formatRelativeTime, generateId, safeExternalUrl } from './utils'
 
 describe('deriveTitle', () => {
   it('returns first line stripped of leading # chars', () => {
@@ -67,5 +67,34 @@ describe('generateId', () => {
 
   it('returns unique values on each call', () => {
     expect(generateId()).not.toBe(generateId())
+  })
+})
+
+describe('safeExternalUrl', () => {
+  it('allows http URLs', () => {
+    expect(safeExternalUrl('http://example.com/x')).toBe('http://example.com/x')
+  })
+
+  it('allows https URLs', () => {
+    expect(safeExternalUrl('https://example.com/x?y=1')).toBe('https://example.com/x?y=1')
+  })
+
+  it('rejects javascript: URLs', () => {
+    expect(safeExternalUrl('javascript:alert(document.cookie)')).toBeNull()
+  })
+
+  it('rejects data: URLs', () => {
+    expect(safeExternalUrl('data:text/html,<script>alert(1)</script>')).toBeNull()
+  })
+
+  it('rejects other schemes like mailto: and file:', () => {
+    expect(safeExternalUrl('mailto:a@b.com')).toBeNull()
+    expect(safeExternalUrl('file:///etc/passwd')).toBeNull()
+  })
+
+  it('rejects non-URL / relative strings', () => {
+    expect(safeExternalUrl('not a url')).toBeNull()
+    expect(safeExternalUrl('/relative/path')).toBeNull()
+    expect(safeExternalUrl('')).toBeNull()
   })
 })

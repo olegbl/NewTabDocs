@@ -6,6 +6,16 @@ import { markdown } from '@codemirror/lang-markdown'
 import { GFM } from '@lezer/markdown'
 import { syntaxHighlighting, HighlightStyle, syntaxTree } from '@codemirror/language'
 import { tags } from '@lezer/highlight'
+import { safeExternalUrl } from '../utils'
+
+// Open a link in a new tab only if it uses a safe http/https scheme.
+// Returns true when the link was opened so the caller can preventDefault.
+function openExternal(rawUrl: string): boolean {
+  const url = safeExternalUrl(rawUrl)
+  if (!url) return false
+  window.open(url, '_blank', 'noopener,noreferrer')
+  return true
+}
 
 const markdownHighlight = HighlightStyle.define([
   { tag: tags.heading1, fontSize: '1.5em', fontWeight: '700', color: '#ffffff', lineHeight: '1.4' },
@@ -72,33 +82,23 @@ export default function Editor({ content, onChange }: Props) {
                 if (node.name === 'URL') {
                   // [text](url) — URL child node
                   const url = view.state.sliceDoc(node.from, node.to)
-                  window.open(url, '_blank')
-                  event.preventDefault()
-                  return true
+                  if (openExternal(url)) { event.preventDefault(); return true }
                 }
                 if (node.name === 'Autolink') {
                   // <https://...> — strip surrounding < >
                   const url = view.state.sliceDoc(node.from + 1, node.to - 1)
-                  window.open(url, '_blank')
-                  event.preventDefault()
-                  return true
+                  if (openExternal(url)) { event.preventDefault(); return true }
                 }
                 if (node.name === 'Link') {
                   // Try URL child first ([text](url) form, clicking the text part)
                   const urlChild = node.getChild('URL')
                   if (urlChild) {
                     const url = view.state.sliceDoc(urlChild.from, urlChild.to)
-                    window.open(url, '_blank')
-                    event.preventDefault()
-                    return true
+                    if (openExternal(url)) { event.preventDefault(); return true }
                   }
                   // GFM bare URL — the Link node itself is the URL
                   const text = view.state.sliceDoc(node.from, node.to)
-                  if (/^https?:\/\//.test(text)) {
-                    window.open(text, '_blank')
-                    event.preventDefault()
-                    return true
-                  }
+                  if (openExternal(text)) { event.preventDefault(); return true }
                 }
                 if (!node.parent) break
                 node = node.parent
@@ -111,9 +111,7 @@ export default function Editor({ content, onChange }: Props) {
               let m
               while ((m = urlRe.exec(line.text)) !== null) {
                 if (m.index <= offset && offset <= m.index + m[0].length) {
-                  window.open(m[0], '_blank')
-                  event.preventDefault()
-                  return true
+                  if (openExternal(m[0])) { event.preventDefault(); return true }
                 }
               }
               return false

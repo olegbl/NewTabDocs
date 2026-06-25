@@ -69,5 +69,19 @@ export async function clearCachedToken(): Promise<void> {
 
 export async function revokeToken(token: string): Promise<void> {
   await clearCachedToken()
-  await fetch(`https://oauth2.googleapis.com/revoke?token=${token}`, { method: 'POST' })
+  await fetch(`https://oauth2.googleapis.com/revoke?token=${encodeURIComponent(token)}`, {
+    method: 'POST',
+  }).catch(() => {})
+}
+
+// Revoke the currently active token (in-memory or stored) at Google, then
+// drop the local copy. Used by "Disconnect" so the grant is actually severed
+// rather than just forgotten locally.
+export async function revokeActiveToken(): Promise<void> {
+  const token = memoryToken ?? (await readStoredToken())
+  if (token) {
+    await revokeToken(token)
+  } else {
+    await clearCachedToken()
+  }
 }

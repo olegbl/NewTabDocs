@@ -19,3 +19,14 @@ export function formatRelativeTime(timestamp: number): string {
 export function generateId(): string {
   return crypto.randomUUID()
 }
+
+// Returns the URL only if it uses a safe, navigable scheme (http/https).
+// Guards window.open against script-bearing schemes like javascript: and data:.
+export function safeExternalUrl(raw: string): string | null {
+  try {
+    const protocol = new URL(raw).protocol
+    return protocol === 'http:' || protocol === 'https:' ? raw : null
+  } catch {
+    return null
+  }
+}
