@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy — New Tab Docs</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #0f0f0f; color: #ccc; line-height: 1.7; }
+    .wrap { max-width: 680px; margin: 0 auto; padding: 60px 24px 80px; }
+    a { color: #4a9eff; }
+    h1 { color: #fff; font-size: 1.8em; margin-bottom: 8px; }
+    .meta { color: #555; font-size: 0.9em; margin-bottom: 40px; }
+    h2 { color: #ddd; font-size: 1.05em; margin: 32px 0 8px; }
+    p { color: #999; margin-bottom: 12px; }
+    ul { color: #999; padding-left: 20px; margin-bottom: 12px; }
+    li { margin-bottom: 6px; }
+    code { background: #1e1e1e; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; color: #b8b8ff; }
+    nav { margin-bottom: 40px; font-size: 0.9em; }
+    nav a { color: #555; text-decoration: none; margin-right: 16px; }
+    nav a:hover { color: #888; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav><a href="./">← New Tab Docs</a></nav>
+    <h1>Privacy Policy</h1>
+    <p class="meta">Last updated: June 2026</p>
+
+    <p><strong style="color:#ddd">New Tab Docs</strong> is a Chrome extension that provides a markdown note-taking editor on every new tab, with optional Google Drive sync.</p>
+
+    <h2>Data stored locally</h2>
+    <p>Your notes are stored on your device using <code>chrome.storage.local</code>. This data never leaves your browser unless you explicitly enable Google Drive sync.</p>
+
+    <h2>Google Drive sync (optional)</h2>
+    <p>If you choose to connect Google Drive, the extension:</p>
+    <ul>
+      <li>Requests the <code>drive.file</code> OAuth scope, which grants access only to files created by this extension.</li>
+      <li>Creates and reads a single file (<code>newtabdocs-backup.json</code>) in your Google Drive to store your notes.</li>
+      <li>Stores an OAuth access token in <code>chrome.storage.local</code> on your device to keep you connected across sessions.</li>
+    </ul>
+    <p>Your notes and OAuth token are never sent to any server other than Google's APIs. The extension has no backend.</p>
+
+    <h2>Data sharing</h2>
+    <p>No data is shared with any third party. The developer has no access to your notes or your Google account.</p>
+
+    <h2>Permissions</h2>
+    <ul>
+      <li><strong style="color:#ddd">storage</strong> — saves your notes locally on your device.</li>
+      <li><strong style="color:#ddd">identity</strong> — used to authenticate with Google Drive via OAuth when you choose to connect.</li>
+    </ul>
+
+    <h2>Contact</h2>
+    <p><a href="mailto:olegbl@gmail.com">olegbl@gmail.com</a></p>
+  </div>
+</body>
+</html>
