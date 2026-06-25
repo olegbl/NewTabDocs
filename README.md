@@ -33,7 +33,17 @@ Load the extension in Vivaldi/Chrome: go to `chrome://extensions`, enable Develo
 
 ## Google Drive sync
 
-Drive sync uses OAuth 2.0 via `chrome.identity.launchWebAuthFlow`, which works in any Chromium-based browser. Click **Connect Drive** in the sidebar footer to authenticate. The connection persists across restarts and auto-refreshes when the token expires.
+Drive sync uses the OAuth 2.0 **authorization-code flow with PKCE** via `chrome.identity.launchWebAuthFlow`, which works in any Chromium-based browser. Click **Connect Drive** in the sidebar footer to authenticate. The flow returns a long-lived **refresh token**, so the connection stays active for weeks — access tokens are refreshed silently in the background with no further prompts.
+
+### Building with your own Google credentials
+
+If you build from source you need your own OAuth client:
+
+1. In [Google Cloud Console](https://console.cloud.google.com/) → **APIs & Services → Credentials**, create an OAuth 2.0 Client ID of type **Web application**, and register the redirect URI `https://<your-extension-id>.chromiumapp.org/`.
+2. Put the client ID in `public/manifest.json` (`oauth2.client_id`) and the client secret in `src/drive/config.ts`.
+3. On the **OAuth consent screen**, set the publishing status to **In production**. While it stays in *Testing*, Google expires refresh tokens after 7 days, which would re-trigger the sign-in prompt weekly.
+
+> **Note on the client secret:** for a public client like a browser extension the secret is not confidential — it ships inside the extension and is extractable. This is the standard, Google-sanctioned setup for installed/desktop/SPA clients; PKCE is what protects the authorization code. The `drive.file` scope only grants access to files this extension creates.
 
 ## Tech stack
 

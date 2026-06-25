@@ -1,6 +1,6 @@
 import { useRef, useCallback, type MutableRefObject } from 'react'
 import type { Tab, SyncMeta, SyncStatus, ConflictState } from '../types'
-import { getToken, clearCachedToken } from '../drive/auth'
+import { getToken, invalidateAccessToken } from '../drive/auth'
 import { getFileMeta, downloadFile, uploadFile, DriveAuthError } from '../drive/api'
 import { saveState } from '../storage'
 
@@ -95,10 +95,11 @@ export function useDriveSync(opts: UseDriveSyncOptions) {
       o.setSyncStatus('idle')
     } catch (err) {
       if (!retried && err instanceof DriveAuthError) {
-        // Token expired — clear it, try silent refresh then interactive, retry once
-        await clearCachedToken()
-        const silent = await getToken(false)
-        if (!silent) await getToken(true)
+        // Access token rejected mid-flight — force a silent refresh and retry once.
+        // getToken() only prompts if the refresh token itself is no longer valid.
+        await invalidateAccessToken()
+        const token = await getToken()
+        if (!token) { optsRef.current.setSyncStatus('disconnected'); return }
         await sync(true)
         return
       }
