@@ -48,4 +48,4 @@ MIT — see [LICENSE](LICENSE)
 
 ## Privacy
 
-See [Privacy Policy](https://olegbl.github.io/NewTabDocs/privacy.html)
+See [Privacy Policy](https://newtabdocs.lokhvitsky.com/privacy.html)
